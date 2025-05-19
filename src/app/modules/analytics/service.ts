@@ -8,7 +8,7 @@ export class AnalyticsService {
         if (!vitals.length) throw new AppError('No vitals found', 404);
         const data: Analytics = {
             patientId,
-            period: period as any,
+            period: period,
             data: {
                 heartRate: vitals.map(v => v.heartRate).filter(Boolean) as number[],
                 bloodPressure: vitals

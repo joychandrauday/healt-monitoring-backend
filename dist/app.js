@@ -44,7 +44,7 @@ app.get('/', (req, res) => {
     var _a;
     const currentDateTime = new Date().toISOString();
     const clientIp = req.headers['x-forwarded-for'] ||
-        ((_a = req.socket) === null || _a === void 0 ? void 0 : _a.remoteAddress);
+        ((_a = (req.socket)) === null || _a === void 0 ? void 0 : _a.remoteAddress);
     const serverHostname = os_1.default.hostname();
     const serverPlatform = os_1.default.platform();
     const uptime = os_1.default.uptime();
