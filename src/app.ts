@@ -20,6 +20,7 @@ const app = express();
 // Allowed origins
 const allowedOrigins = [
     'http://localhost:3000',
+    'https://health-monitoring-system-five.vercel.app',
 ];
 
 // CORS middleware
