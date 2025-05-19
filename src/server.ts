@@ -11,7 +11,7 @@ export const io = new Server(server, {
     cors: {
         origin: [
             'http://localhost:3000',
-            'https://your-frontend-domain.com',
+            'https://health-monitoring-system-five.vercel.app',
             'wss://health-monitoring-backend-0rmy.onrender.com'
         ],
         methods: ['GET', 'POST'],
