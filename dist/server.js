@@ -23,8 +23,9 @@ const server = http_1.default.createServer(app_1.default);
 exports.io = new socket_io_1.Server(server, {
     cors: {
         origin: [
-            'http://localhost:3000', // Local development
-            'https://your-frontend.vercel.app', // Replace with your actual frontend URL
+            'http://localhost:3000',
+            'https://your-frontend-domain.com',
+            'wss://health-monitoring-backend-0rmy.onrender.com'
         ],
         methods: ['GET', 'POST'],
         credentials: true,

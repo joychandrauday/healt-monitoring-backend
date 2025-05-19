@@ -10,8 +10,9 @@ const server = http.createServer(app);
 export const io = new Server(server, {
     cors: {
         origin: [
-            'http://localhost:3000', // Local development
-            'https://your-frontend.vercel.app', // Replace with your actual frontend URL
+            'http://localhost:3000',
+            'https://your-frontend-domain.com',
+            'wss://health-monitoring-backend-0rmy.onrender.com'
         ],
         methods: ['GET', 'POST'],
         credentials: true,
