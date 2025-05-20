@@ -60,7 +60,6 @@ export class NotificationService {
         }
 
         const { type, acknowledged, page = 1, limit } = query as any;
-
         const filters: Record<string, any> = { receiver: new Types.ObjectId(receiver) };
         if (type) {
             const validTypes = ['vital', 'chat', 'appointment'];
@@ -77,6 +76,7 @@ export class NotificationService {
         const limitNumber = limit ? Math.max(Number(limit), 1) : 20;
         const skip = (pageNumber - 1) * limitNumber;
 
+        console.log(filters.receiver);
         try {
             const totalNotifications = await Notification.countDocuments(filters);
             const notifications = await Notification.find(filters)
@@ -84,7 +84,6 @@ export class NotificationService {
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limitNumber);
-
             const meta: Meta = {
                 total: totalNotifications,
                 page: pageNumber,
@@ -159,6 +158,8 @@ export class NotificationService {
 
         try {
             const objectId = new Types.ObjectId(userId);
+            console.log(objectId);
+
             const notifications = await Notification.find({
                 receiver: objectId
             })
@@ -173,7 +174,6 @@ export class NotificationService {
                     model: 'User',
                     select: 'name email avatar _id',
                 });
-
             return notifications;
         } catch (error: any) {
             throw new AppError(`Failed to get notifications by userId: ${error.message}`, 500);

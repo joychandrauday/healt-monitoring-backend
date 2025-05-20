@@ -27,7 +27,7 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         next();
     }
     catch (error) {
-        next(new error_1.AppError('Invalid or expired token', 401));
+        next(new error_1.AppError('Invalid or expired token.', 401));
     }
 });
 exports.authMiddleware = authMiddleware;

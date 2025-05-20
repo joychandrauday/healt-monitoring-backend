@@ -18,22 +18,34 @@ const asyncHandler_1 = require("../../utils/asyncHandler");
 const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const server_1 = require("../../../server");
+const service_2 = require("../notification/service");
 const vitalsService = new service_1.VitalsService();
+const notificationService = new service_2.NotificationService();
 exports.submitVital = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const vital = yield vitalsService.createVital(Object.assign(Object.assign({}, req.body), { patientId: req.user.id }));
+    // Create the notification in the backend
+    const notification = yield notificationService.createNotification({
+        receiver: vital.doctorId.toString(),
+        sender: vital.patientId.toString(),
+        type: 'vital',
+        message: 'New vital submitted',
+        url: `/doctor/dashboard/vitals/${vital.patientId}/${vital._id}`,
+    });
     console.log('Vital created:', vital);
+    console.log('Notification created:', notification);
     console.log('Emitting to rooms:', `patient:${vital.patientId}`, `doctor:${vital.doctorId}`);
-    // Emit vital:new to patient and doctor
+    // Emit vital:new with the notification data
     server_1.io.to(`patient:${vital.patientId}`)
         .to(`doctor:${vital.doctorId}`)
         .emit('vital:new', {
-        sender: vital.patientId, // Changed from patientId to sender to match frontend
+        sender: vital.patientId,
         vitalId: vital._id,
         vital,
+        notification, // Include the notification
     });
     // Emit vital:submitted to patient
     server_1.io.to(`patient:${vital.patientId}`).emit('vital:submitted', vital);
-    // Check for critical vitals
+    // Handle critical vitals (optional: create a separate notification if needed)
     let alertMessage = null;
     if (vital.heartRate && (vital.heartRate > 100 || vital.heartRate < 60)) {
         alertMessage = `Critical Heart Rate: ${vital.heartRate} bpm`;
@@ -42,9 +54,8 @@ exports.submitVital = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
         alertMessage = `Critical BP: ${vital.bloodPressure.systolic}/${vital.bloodPressure.diastolic} mmHg`;
     }
     if (alertMessage) {
-        console.log('Emitting vital:alert to doctor:', `doctor:${vital.doctorId}`);
         server_1.io.to(`doctor:${vital.doctorId}`).emit('vital:alert', {
-            sender: vital.patientId, // Changed from patientId to sender to match frontend
+            sender: vital.patientId,
             vitalId: vital._id,
             message: alertMessage,
             vital,

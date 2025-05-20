@@ -14,6 +14,7 @@ const notificationService = new NotificationService();
 const userService = new UserService();
 
 export const createNotification = asyncHandler(async (req: Request, res: Response) => {
+    console.log(req.body);
     const notification = await notificationService.createNotification(req.body);
     sendResponse(res, {
         statusCode: StatusCodes.CREATED,
@@ -47,6 +48,7 @@ export const getAllNotifications = asyncHandler(async (req: CustomRequest, res: 
     });
 });
 
+
 export const acknowledgeNotification = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?.id;
     const notification = await notificationService.acknowledgeNotification(req.params.id, userId as string);
@@ -60,17 +62,14 @@ export const acknowledgeNotification = asyncHandler(async (req: CustomRequest, r
             message = `Your vital submission has been acknowledged by Dr. ${user?.name || 'Doctor'}`;
             url = `/patient/vitals/${notification._id}`;
             break;
-
         case 'chat':
             message = `Your message has been acknowledged by Dr. ${user?.name || 'User'}`;
             url = `/chat/${notification.sender.toString()}`;
             break;
-
         case 'appointment':
             message = `Your appointment request has been acknowledged by Dr. ${user?.name || 'User'}`;
             url = `/patient/dashboard/appointments/${notification._id}`;
             break;
-
         default:
             message = `You have a new notification from Dr. ${user?.name || 'Doctor'}`;
             url = `/patient/dashboard/notifications/${notification._id}`;
@@ -78,25 +77,27 @@ export const acknowledgeNotification = asyncHandler(async (req: CustomRequest, r
     }
 
     const newPatientNotification: NotificationInput = {
-        receiver: notification.sender.toString(),
-        sender: notification.receiver.toString(),
-        type: notification.type,
+        receiver: notification.sender.toString(), // Doctor ID
+        sender: notification.receiver.toString(), // Patient ID
+        type: 'vital',
         message,
         url,
         timestamp: new Date(),
-        acknowledged: true,
+        acknowledged: false,
     };
 
-    // Save the new notification
     const savedNotification = await notificationService.createNotification(newPatientNotification);
 
-    // Emit notification:acknowledged to patient
-    console.log('Emitting to room:', `user:${notification.sender}`);
-    io.to(`user:${notification.sender}`).emit('notification:acknowledged', {
-        patientId: notification.sender.toString(),
+    // Emit the acknowledgment notification to the patient's room
+    console.log('Emitting to room:', `patient:${newPatientNotification.receiver}`);
+    io.to(`patient:${newPatientNotification.receiver}`).emit('notification:acknowledged', {
+        sender: newPatientNotification.sender,
         notificationId: savedNotification._id,
         message: newPatientNotification.message,
-        notification: savedNotification,
+        notification: {
+            ...savedNotification,
+            timestamp: savedNotification.timestamp.toISOString(),
+        },
     });
 
     sendResponse(res, {

@@ -4,6 +4,29 @@ import { Vital } from './interface';
 const vitalSchema = new Schema<Vital>({
     patientId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
+    status: {
+        type: String,
+        enum: ["acknowledged", "pending", "in-progress", "completed"],
+        default: "pending"
+    },
+    feedback: {
+        type: {
+            prescriptions: [{
+                medication: { type: String, trim: true },
+                dosage: { type: String, trim: true },
+                duration: { type: String, trim: true },
+                instructions: { type: String, trim: true },
+            }],
+            labTests: [{
+                testName: { type: String, trim: true },
+                urgency: { type: String, enum: ["routine", "urgent"], default: "routine" },
+                notes: { type: String, trim: true },
+            }],
+            recommendations: { type: String, trim: true },
+        },
+        default: {}, // Default to empty object
+        required: false, // Explicitly not required
+    },
     heartRate: { type: Number, min: 0 },
     bloodPressure: {
         systolic: { type: Number, min: 0 },
@@ -15,12 +38,21 @@ const vitalSchema = new Schema<Vital>({
     respiratoryRate: { type: Number, min: 0 },
     painLevel: { type: Number, min: 0, max: 10 },
     injury: {
-        type: { type: String, enum: ["internal", "external", "none"] },
-        description: { type: String },
+        type: { type: String, enum: ["internal", "external", "none"], default: "none" },
+        description: { type: String, trim: true },
         severity: { type: String, enum: ["mild", "moderate", "severe"] },
     },
-    visuals: [{ type: String }],
+    visuals: [{ type: String, trim: true }],
+    notes: { type: String, trim: true },
+    priority: {
+        type: String,
+        enum: ["low", "medium", "high"],
+        default: "low"
+    },
     timestamp: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+}, {
+    timestamps: { updatedAt: 'updatedAt' } // Automatically manage updatedAt
 });
 
 export const VitalModel = model<Vital>('Vital', vitalSchema);

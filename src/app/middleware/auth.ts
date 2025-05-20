@@ -13,6 +13,6 @@ export const authMiddleware = async (req: CustomRequest, res: Response, next: Ne
         req.user = { id: decoded.id, email: decoded.email, role: decoded.role };
         next();
     } catch (error) {
-        next(new AppError('Invalid or expired token', 401));
+        next(new AppError('Invalid or expired token.', 401));
     }
 };

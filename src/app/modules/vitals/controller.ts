@@ -5,30 +5,43 @@ import { CustomRequest } from '../../types';
 import sendResponse from '../../utils/sendResponse';
 import { StatusCodes } from 'http-status-codes';
 import { io } from '../../../server';
+import { NotificationService } from '../notification/service';
 
 const vitalsService = new VitalsService();
+const notificationService = new NotificationService();
 export const submitVital = asyncHandler(async (req: CustomRequest, res: Response) => {
     const vital = await vitalsService.createVital({
         ...req.body,
         patientId: req.user!.id,
     });
 
+    // Create the notification in the backend
+    const notification = await notificationService.createNotification({
+        receiver: vital.doctorId.toString(),
+        sender: vital.patientId.toString(),
+        type: 'vital',
+        message: 'New vital submitted',
+        url: `/doctor/dashboard/vitals/${vital.patientId}/${vital._id}`,
+    });
+
     console.log('Vital created:', vital);
+    console.log('Notification created:', notification);
     console.log('Emitting to rooms:', `patient:${vital.patientId}`, `doctor:${vital.doctorId}`);
 
-    // Emit vital:new to patient and doctor
+    // Emit vital:new with the notification data
     io.to(`patient:${vital.patientId}`)
         .to(`doctor:${vital.doctorId}`)
         .emit('vital:new', {
-            sender: vital.patientId, // Changed from patientId to sender to match frontend
+            sender: vital.patientId,
             vitalId: vital._id,
             vital,
+            notification, // Include the notification
         });
 
     // Emit vital:submitted to patient
     io.to(`patient:${vital.patientId}`).emit('vital:submitted', vital);
 
-    // Check for critical vitals
+    // Handle critical vitals (optional: create a separate notification if needed)
     let alertMessage = null;
     if (vital.heartRate && (vital.heartRate > 100 || vital.heartRate < 60)) {
         alertMessage = `Critical Heart Rate: ${vital.heartRate} bpm`;
@@ -37,9 +50,8 @@ export const submitVital = asyncHandler(async (req: CustomRequest, res: Response
     }
 
     if (alertMessage) {
-        console.log('Emitting vital:alert to doctor:', `doctor:${vital.doctorId}`);
         io.to(`doctor:${vital.doctorId}`).emit('vital:alert', {
-            sender: vital.patientId, // Changed from patientId to sender to match frontend
+            sender: vital.patientId,
             vitalId: vital._id,
             message: alertMessage,
             vital,
@@ -53,7 +65,6 @@ export const submitVital = asyncHandler(async (req: CustomRequest, res: Response
         data: vital,
     });
 });
-
 export const getVitals = asyncHandler(async (req: Request, res: Response) => {
     const query = req.query;
     const result = await vitalsService.getVitalsByPatientId(req.params.patientId, query);

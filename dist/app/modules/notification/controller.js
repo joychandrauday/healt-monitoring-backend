@@ -23,6 +23,7 @@ const server_1 = require("../../../server");
 const notificationService = new service_1.NotificationService();
 const userService = new service_2.UserService();
 exports.createNotification = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(req.body);
     const notification = yield notificationService.createNotification(req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
@@ -79,23 +80,22 @@ exports.acknowledgeNotification = (0, asyncHandler_1.asyncHandler)((req, res) =>
             break;
     }
     const newPatientNotification = {
-        receiver: notification.sender.toString(),
-        sender: notification.receiver.toString(),
-        type: notification.type,
+        receiver: notification.sender.toString(), // Doctor ID
+        sender: notification.receiver.toString(), // Patient ID
+        type: 'vital',
         message,
         url,
         timestamp: new Date(),
-        acknowledged: true,
+        acknowledged: false,
     };
-    // Save the new notification
     const savedNotification = yield notificationService.createNotification(newPatientNotification);
-    // Emit notification:acknowledged to patient
-    console.log('Emitting to room:', `user:${notification.sender}`);
-    server_1.io.to(`user:${notification.sender}`).emit('notification:acknowledged', {
-        patientId: notification.sender.toString(),
+    // Emit the acknowledgment notification to the patient's room
+    console.log('Emitting to room:', `patient:${newPatientNotification.receiver}`);
+    server_1.io.to(`patient:${newPatientNotification.receiver}`).emit('notification:acknowledged', {
+        sender: newPatientNotification.sender,
         notificationId: savedNotification._id,
         message: newPatientNotification.message,
-        notification: savedNotification,
+        notification: Object.assign(Object.assign({}, savedNotification), { timestamp: savedNotification.timestamp.toISOString() }),
     });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
