@@ -4,7 +4,7 @@ exports.VitalModel = void 0;
 const mongoose_1 = require("mongoose");
 const vitalSchema = new mongoose_1.Schema({
     patientId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    doctorId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Doctor", required: true },
+    doctorId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
     status: {
         type: String,
         enum: ["acknowledged", "pending", "in-progress", "completed"],
@@ -14,6 +14,7 @@ const vitalSchema = new mongoose_1.Schema({
         type: {
             prescriptions: [{
                     medication: { type: String, trim: true },
+                    brandName: { type: String, trim: true },
                     dosage: { type: String, trim: true },
                     duration: { type: String, trim: true },
                     instructions: { type: String, trim: true },
@@ -22,6 +23,11 @@ const vitalSchema = new mongoose_1.Schema({
                     testName: { type: String, trim: true },
                     urgency: { type: String, enum: ["routine", "urgent"], default: "routine" },
                     notes: { type: String, trim: true },
+                    scheduledDate: { type: String, trim: true },
+                    labLocation: { type: String, trim: true },
+                    status: { type: String, trim: true },
+                    resultLink: { type: String, trim: true },
+                    physicianNote: { type: String, trim: true },
                 }],
             recommendations: { type: String, trim: true },
         },

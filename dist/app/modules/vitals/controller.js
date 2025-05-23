@@ -11,14 +11,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPatientsByDoctorId = exports.deleteVital = exports.updateVital = exports.getVital = exports.getVitalsByDoctor = exports.getVitals = exports.submitVital = void 0;
+exports.feedbackController = exports.getPatientsByDoctorId = exports.deleteVital = exports.updateRecommendation = exports.updateVital = exports.getVital = exports.getVitalsByDoctor = exports.getVitals = exports.submitVital = void 0;
 const service_1 = require("./service");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const server_1 = require("../../../server");
 const service_2 = require("../notification/service");
+const error_1 = require("../../utils/error");
 const vitalsService = new service_1.VitalsService();
 const notificationService = new service_2.NotificationService();
 exports.submitVital = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -28,9 +30,11 @@ exports.submitVital = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
         receiver: vital.doctorId.toString(),
         sender: vital.patientId.toString(),
         type: 'vital',
+        foreignId: vital._id,
         message: 'New vital submitted',
         url: `/doctor/dashboard/vitals/${vital.patientId}/${vital._id}`,
     });
+    console.log(notification);
     console.log('Vital created:', vital);
     console.log('Notification created:', notification);
     console.log('Emitting to rooms:', `patient:${vital.patientId}`, `doctor:${vital.doctorId}`);
@@ -96,6 +100,10 @@ exports.updateVital = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
     const vital = yield vitalsService.updateVital(req.params.id, req.body);
     res.status(200).json(vital);
 }));
+exports.updateRecommendation = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const vital = yield vitalsService.addRecommendation(req.params.id, req.body.recommendations);
+    res.status(200).json(vital);
+}));
 exports.deleteVital = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     yield vitalsService.deleteVital(req.params.id);
     (0, sendResponse_1.default)(res, {
@@ -121,3 +129,236 @@ const getPatientsByDoctorId = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.getPatientsByDoctorId = getPatientsByDoctorId;
+// feedback controller section
+class feedbackController {
+}
+exports.feedbackController = feedbackController;
+_a = feedbackController;
+// Prescriptions: Add
+feedbackController.addPrescription = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { data } = req.body;
+    // Validate input
+    if (!data || !data.medication || !data.dosage || !data.duration) {
+        throw new error_1.NotFoundError("Invalid prescription data: medication, dosage, and duration are required");
+    }
+    try {
+        const vital = yield vitalsService.addPrescription(id, data);
+        // Create notification
+        const notification = yield notificationService.createNotification({
+            receiver: vital.patientId.toString(),
+            sender: req.user.id, // Assuming doctor is the authenticated user
+            type: 'vital_feedback',
+            foreignId: vital._id,
+            message: `New prescription added: ${data.medication}`,
+            url: `/patient/dashboard/vitals/${vital._id}`,
+        });
+        // Emit Socket.IO event
+        server_1.io.to(`patient:${vital.patientId}`)
+            .to(`doctor:${vital.doctorId}`)
+            .emit('vital:feedback', {
+            sender: req.user.id,
+            vitalId: vital._id,
+            message: `New prescription added: ${data.medication}`,
+            vital,
+            notification,
+        });
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: "Prescription added successfully",
+            data: vital,
+        });
+    }
+    catch (error) {
+        console.log(error);
+        throw new error_1.NotFoundError(error.message || "Failed to add prescription");
+    }
+}));
+// Prescriptions: Delete
+feedbackController.deletePrescription = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { data } = req.body;
+    // Validate input
+    if (!data || !data.medication) {
+        throw new error_1.NotFoundError("Invalid prescription data: medication is required for deletion");
+    }
+    try {
+        const vital = yield vitalsService.deletePrescription(id, data);
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: "Prescription deleted successfully",
+            data: vital,
+        });
+    }
+    catch (error) {
+        throw new error_1.NotFoundError(error.message || "Failed to delete prescription");
+    }
+}));
+// Prescriptions: Update
+feedbackController.updatePrescription = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { match, update } = req.body;
+    // Validate input
+    if (!match || !match.medication) {
+        throw new error_1.NotFoundError("Match criteria must include medication for prescriptions");
+    }
+    if (!update) {
+        throw new error_1.NotFoundError("Update data is required");
+    }
+    try {
+        const vital = yield vitalsService.updatePrescription(id, match, update);
+        // Create notification
+        const notification = yield notificationService.createNotification({
+            receiver: vital.patientId.toString(),
+            sender: req.user.id,
+            type: 'vital_feedback',
+            message: `Prescription updated: ${match.medication}`,
+            foreignId: vital._id,
+            url: `/patient/dashboard/vitals/${vital._id}`,
+        });
+        // Emit Socket.IO event
+        server_1.io.to(`patient:${vital.patientId}`)
+            .to(`doctor:${vital.doctorId}`)
+            .emit('vital:feedback', {
+            sender: req.user.id,
+            vitalId: vital._id,
+            message: `Prescription updated: ${match.medication}`,
+            vital,
+            notification,
+        });
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: "Prescription updated successfully",
+            data: vital,
+        });
+    }
+    catch (error) {
+        throw new error_1.NotFoundError(error.message || "Failed to update prescription");
+    }
+}));
+// Lab Tests: Add
+feedbackController.addLabTest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { data } = req.body;
+    // Validate input
+    if (!data || !data.testName || !data.urgency) {
+        throw new error_1.NotFoundError("Invalid lab test data: testName and urgency are required");
+    }
+    try {
+        const vital = yield vitalsService.addLabTest(id, data);
+        // Create notification
+        const notification = yield notificationService.createNotification({
+            receiver: vital.patientId.toString(),
+            sender: req.user.id,
+            type: 'vital_feedback',
+            foreignId: vital._id,
+            message: `New lab test added: ${data.testName}`,
+            url: `/patient/dashboard/vitals/${vital._id}`,
+        });
+        // Emit Socket.IO event
+        server_1.io.to(`patient:${vital.patientId}`)
+            .to(`doctor:${vital.doctorId}`)
+            .emit('vital:feedback', {
+            sender: req.user.id,
+            vitalId: vital._id,
+            message: `New lab test added: ${data.testName}`,
+            vital,
+            notification,
+        });
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: "Lab test added successfully",
+            data: vital,
+        });
+    }
+    catch (error) {
+        throw new error_1.NotFoundError(error.message || "Failed to add lab test");
+    }
+}));
+// Lab Tests: Delete
+feedbackController.deleteLabTest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { data } = req.body;
+    // Validate input
+    if (!data || !data.testName) {
+        throw new error_1.NotFoundError("Invalid lab test data: testName is required for deletion");
+    }
+    try {
+        const vital = yield vitalsService.deleteLabTest(id, data);
+        // Create notification
+        const notification = yield notificationService.createNotification({
+            receiver: vital.patientId.toString(),
+            sender: req.user.id,
+            type: 'vital_feedback',
+            foreignId: vital._id,
+            message: `Lab test deleted: ${data.testName}`,
+            url: `/patient/dashboard/vitals/${vital._id}`,
+        });
+        // Emit Socket.IO event
+        server_1.io.to(`patient:${vital.patientId}`)
+            .to(`doctor:${vital.doctorId}`)
+            .emit('vital:feedback', {
+            sender: req.user.id,
+            vitalId: vital._id,
+            message: `Lab test deleted: ${data.testName}`,
+            vital,
+            notification,
+        });
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: "Lab test deleted successfully",
+            data: vital,
+        });
+    }
+    catch (error) {
+        throw new error_1.NotFoundError(error.message || "Failed to delete lab test");
+    }
+}));
+// Lab Tests: Update
+feedbackController.updateLabTest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { match, update } = req.body;
+    // Validate input
+    if (!match || !match.testName) {
+        throw new error_1.NotFoundError("Match criteria must include testName for lab tests");
+    }
+    if (!update) {
+        throw new error_1.NotFoundError("Update data is required");
+    }
+    try {
+        const vital = yield vitalsService.updateLabTest(id, match, update);
+        // Create notification
+        const notification = yield notificationService.createNotification({
+            receiver: vital.patientId.toString(),
+            sender: req.user.id,
+            type: 'vital_feedback',
+            foreignId: vital._id,
+            message: `Lab test updated: ${match.testName}`,
+            url: `/patient/dashboard/vitals/${vital._id}`,
+        });
+        // Emit Socket.IO event
+        server_1.io.to(`patient:${vital.patientId}`)
+            .to(`doctor:${vital.doctorId}`)
+            .emit('vital:feedback', {
+            sender: req.user.id,
+            vitalId: vital._id,
+            message: `Lab test updated: ${match.testName}`,
+            vital,
+            notification,
+        });
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: "Lab test updated successfully",
+            data: vital,
+        });
+    }
+    catch (error) {
+        throw new error_1.NotFoundError(error.message || "Failed to update lab test");
+    }
+}));

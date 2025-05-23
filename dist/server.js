@@ -17,6 +17,9 @@ const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const app_1 = __importDefault(require("./app"));
 const config_1 = require("./app/config");
+const dotenv_1 = __importDefault(require("dotenv"));
+// Load environment variables
+dotenv_1.default.config();
 const PORT = process.env.PORT || 5000;
 const server = http_1.default.createServer(app_1.default);
 // Create socket.io instance
@@ -25,13 +28,17 @@ exports.io = new socket_io_1.Server(server, {
         origin: [
             'http://localhost:3000',
             'https://health-monitoring-system-five.vercel.app',
-            'wss://health-monitoring-backend-0rmy.onrender.com'
+            'wss://health-monitoring-backend-0rmy.onrender.com',
         ],
         methods: ['GET', 'POST'],
         credentials: true,
     },
-    transports: ['websocket', 'polling'], // Explicitly support both transports
+    transports: ['websocket', 'polling'],
 });
+// Store io globally
+global.io = exports.io;
+// Log Socket.IO initialization
+console.log('Socket.IO initialized:', exports.io ? 'OK' : 'undefined');
 // Handle socket connections
 exports.io.on('connection', (socket) => {
     console.log(`🟢 New client connected: ${socket.id}`);

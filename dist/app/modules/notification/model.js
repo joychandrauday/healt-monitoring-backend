@@ -6,8 +6,9 @@ const mongoose_1 = require("mongoose");
 const notificationSchema = new mongoose_1.Schema({
     receiver: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     sender: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['vital', 'chat', 'appointment', 'acknowledgment'], required: true },
+    type: { type: String, enum: ['vital', 'chat', 'appointment', 'acknowledgment', 'vital_feedback'], required: true },
     message: { type: String, required: true },
+    foreignId: { type: String, },
     url: { type: String },
     acknowledged: { type: Boolean, default: false },
     timestamp: { type: Date, default: Date.now },

@@ -2,6 +2,10 @@ import http from 'http';
 import { Server } from 'socket.io';
 import app from './app';
 import { connectDB } from './app/config';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
@@ -12,13 +16,19 @@ export const io = new Server(server, {
         origin: [
             'http://localhost:3000',
             'https://health-monitoring-system-five.vercel.app',
-            'wss://health-monitoring-backend-0rmy.onrender.com'
+            'wss://health-monitoring-backend-0rmy.onrender.com',
         ],
         methods: ['GET', 'POST'],
         credentials: true,
     },
-    transports: ['websocket', 'polling'], // Explicitly support both transports
+    transports: ['websocket', 'polling'],
 });
+
+// Store io globally
+(global as any).io = io;
+
+// Log Socket.IO initialization
+console.log('Socket.IO initialized:', io ? 'OK' : 'undefined');
 
 // Handle socket connections
 io.on('connection', (socket) => {

@@ -3,7 +3,7 @@ import { Vital } from './interface';
 
 const vitalSchema = new Schema<Vital>({
     patientId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
+    doctorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     status: {
         type: String,
         enum: ["acknowledged", "pending", "in-progress", "completed"],
@@ -13,6 +13,7 @@ const vitalSchema = new Schema<Vital>({
         type: {
             prescriptions: [{
                 medication: { type: String, trim: true },
+                brandName: { type: String, trim: true },
                 dosage: { type: String, trim: true },
                 duration: { type: String, trim: true },
                 instructions: { type: String, trim: true },
@@ -21,6 +22,11 @@ const vitalSchema = new Schema<Vital>({
                 testName: { type: String, trim: true },
                 urgency: { type: String, enum: ["routine", "urgent"], default: "routine" },
                 notes: { type: String, trim: true },
+                scheduledDate: { type: String, trim: true },
+                labLocation: { type: String, trim: true },
+                status: { type: String, trim: true },
+                resultLink: { type: String, trim: true },
+                physicianNote: { type: String, trim: true },
             }],
             recommendations: { type: String, trim: true },
         },

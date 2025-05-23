@@ -6,15 +6,21 @@ export interface Vital {
     status: "acknowledged" | "pending" | "in-progress" | "completed";
     feedback?: {
         prescriptions?: {
-            medication: string;
-            dosage: string; // E.g., "500mg twice daily"
-            duration: string; // E.g., "7 days"
-            instructions?: string; // E.g., "Take with food"
+            medication: string; // E.g., "Amoxicillin"
+            brandName?: string; // E.g., "Amoxil"
+            dosage: string; // "500mg twice daily"
+            duration: string; // "7 days"
+            instructions?: string; // "Take with food"
         }[];
         labTests?: {
-            testName: string; // E.g., "CBC", "Lipid Panel"
+            testName: string; // e.g., "CBC", "Lipid Panel"
             urgency: "routine" | "urgent";
-            notes?: string; // E.g., "Fasting required"
+            notes?: string; // e.g., "Fasting required"
+            scheduledDate?: string; // ISO date format, e.g., "2025-05-23"
+            labLocation?: string; // e.g., "XYZ Diagnostic Center"
+            status?: "pending" | "completed" | "cancelled";
+            resultLink?: string; // Optional link to results if available digitally
+            physicianNote?: string; // For additional context from doctor
         }[];
         recommendations?: string; // General advice, e.g., "Rest, hydrate, follow-up in 3 days"
     };

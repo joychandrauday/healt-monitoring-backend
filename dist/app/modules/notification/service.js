@@ -20,15 +20,15 @@ class NotificationService {
             var _a;
             // Validate required fields
             if (!data.sender || !data.receiver || !data.type || !data.message) {
-                throw new error_1.AppError('Missing required fields: receiver, patientId, type, message', 400);
+                throw new error_1.NotFoundError('Missing required fields: receiver, patientId, type, message');
             }
-            const validTypes = ['vital', 'chat', 'appointment'];
+            const validTypes = ['vital', 'chat', 'appointment', 'acknowledgment', 'vital_feedback'];
             if (!validTypes.includes(data.type)) {
-                throw new error_1.AppError(`Invalid type. Must be one of: ${validTypes.join(', ')}`, 400);
+                throw new error_1.NotFoundError(`Invalid type. Must be one of: ${validTypes.join(', ')}`);
             }
             // Validate ObjectId format for receiver and patientId
             if (!mongoose_1.Types.ObjectId.isValid(data.receiver) || !mongoose_1.Types.ObjectId.isValid(data.sender)) {
-                throw new error_1.AppError('Invalid receiver or patientId', 400);
+                throw new error_1.NotFoundError('Invalid receiver or patientId');
             }
             try {
                 const notification = yield model_1.Notification.create({
@@ -43,14 +43,14 @@ class NotificationService {
                 return notification;
             }
             catch (error) {
-                throw new error_1.AppError(`Failed to create notification: ${error.message}`, 500);
+                throw new error_1.NotFoundError(`Failed to create notification: ${error.message}`);
             }
         });
     }
     getNotificationById(id) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(id)) {
-                throw new error_1.AppError('Invalid notification ID', 400);
+                throw new error_1.NotFoundError('Invalid notification ID');
             }
             const notification = yield model_1.Notification.findById(id)
                 .populate('patientId', 'name email avatar _id')
@@ -64,14 +64,14 @@ class NotificationService {
     getAllNotifications(query, receiver) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(receiver)) {
-                throw new error_1.AppError('Invalid receiver', 400);
+                throw new error_1.NotFoundError('Invalid receiver');
             }
             const { type, acknowledged, page = 1, limit } = query;
             const filters = { receiver: new mongoose_1.Types.ObjectId(receiver) };
             if (type) {
                 const validTypes = ['vital', 'chat', 'appointment'];
                 if (!validTypes.includes(type)) {
-                    throw new error_1.AppError(`Invalid type. Must be one of: ${validTypes.join(', ')}`, 400);
+                    throw new error_1.NotFoundError(`Invalid type. Must be one of: ${validTypes.join(', ')}`);
                 }
                 filters.type = type;
             }
@@ -98,7 +98,7 @@ class NotificationService {
                 return { notifications, meta };
             }
             catch (error) {
-                throw new error_1.AppError(`Failed to retrieve notifications: ${error.message}`, 500);
+                throw new error_1.NotFoundError(`Failed to retrieve notifications: ${error.message}`);
             }
         });
     }
@@ -112,14 +112,14 @@ class NotificationService {
                 return notification;
             }
             catch (error) {
-                throw new error_1.AppError(`Failed to acknowledge notification: ${error.message}`, 500);
+                throw new error_1.NotFoundError(`Failed to acknowledge notification: ${error.message}`);
             }
         });
     }
     deleteNotification(id, receiver) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(id) || !mongoose_1.Types.ObjectId.isValid(receiver)) {
-                throw new error_1.AppError('Invalid notification ID or receiver', 400);
+                throw new error_1.NotFoundError('Invalid notification ID or receiver');
             }
             try {
                 const notification = yield model_1.Notification.findOneAndDelete({
@@ -131,17 +131,17 @@ class NotificationService {
                 }
             }
             catch (error) {
-                throw new error_1.AppError(`Failed to delete notification: ${error.message}`, 500);
+                throw new error_1.NotFoundError(`Failed to delete notification: ${error.message}`);
             }
         });
     }
     clearNotifications(receiver, type) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(receiver)) {
-                throw new error_1.AppError('Invalid receiver', 400);
+                throw new error_1.NotFoundError('Invalid receiver');
             }
             if (type && !['vital', 'chat', 'appointment'].includes(type)) {
-                throw new error_1.AppError(`Invalid type. Must be one of: vital, chat, appointment`, 400);
+                throw new error_1.NotFoundError(`Invalid type. Must be one of: vital, chat, appointment`);
             }
             try {
                 const query = { receiver: new mongoose_1.Types.ObjectId(receiver) };
@@ -151,36 +151,56 @@ class NotificationService {
                 yield model_1.Notification.deleteMany(query);
             }
             catch (error) {
-                throw new error_1.AppError(`Failed to clear notifications: ${error.message}`, 500);
+                throw new error_1.NotFoundError(`Failed to clear notifications: ${error.message}`);
             }
         });
     }
-    getNotificationsByUserId(userId) {
+    getNotificationsByUserId(userId, query) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(userId)) {
-                throw new error_1.AppError('Invalid userId', 400);
+                throw new error_1.NotFoundError('Invalid userId');
             }
             try {
-                const objectId = new mongoose_1.Types.ObjectId(userId);
-                console.log(objectId);
-                const notifications = yield model_1.Notification.find({
-                    receiver: objectId
-                })
-                    .sort({ timestamp: -1 })
+                const receiver = new mongoose_1.Types.ObjectId(userId);
+                const { type, page = 1, limit = 10 } = query;
+                const filters = { receiver };
+                // Apply type filter if provided
+                if (type) {
+                    filters.type = type;
+                }
+                const pageNumber = Math.max(Number(page), 1);
+                const limitNumber = Math.max(Number(limit), 1);
+                const skip = (pageNumber - 1) * limitNumber;
+                // Get total count for pagination
+                const totalNotifications = yield model_1.Notification.countDocuments(filters);
+                // Fetch notifications with pagination, sorting, and population
+                const notifications = yield model_1.Notification.find(filters)
+                    .sort({ timestamp: -1 }) // Newest first
+                    .skip(skip)
+                    .limit(limitNumber)
                     .populate({
                     path: 'sender',
                     model: 'User',
-                    select: 'name email avatar _id',
+                    select: 'name email role avatar _id',
                 })
                     .populate({
                     path: 'receiver',
                     model: 'User',
-                    select: 'name email avatar _id',
-                });
-                return notifications;
+                    select: 'name email role avatar _id',
+                })
+                    .lean(); // Convert to plain JavaScript objects for better performance
+                return {
+                    notifications: notifications,
+                    meta: {
+                        total: totalNotifications,
+                        page: pageNumber,
+                        limit: limitNumber,
+                        totalPages: Math.ceil(totalNotifications / limitNumber),
+                    },
+                };
             }
             catch (error) {
-                throw new error_1.AppError(`Failed to get notifications by userId: ${error.message}`, 500);
+                throw new error_1.NotFoundError(`Failed to get notifications by userId: ${error.message}`);
             }
         });
     }
