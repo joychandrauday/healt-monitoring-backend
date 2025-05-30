@@ -24,6 +24,7 @@ const doctorSchema = new Schema<Doctor>(
         },
         reviews: { type: [reviewSchema], default: [] },
         averageRating: { type: Number, default: 0 },
+        isOnline: { type: Boolean, default: false }
     },
     {
         timestamps: true,

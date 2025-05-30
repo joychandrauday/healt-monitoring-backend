@@ -22,6 +22,7 @@ export interface Doctor {
     };
     reviews?: Review[];
     averageRating?: number; // 👈 Optional: because initially no rating
+    isOnline: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }

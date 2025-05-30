@@ -2,8 +2,8 @@ import { Schema, model } from 'mongoose';
 import { ChatMessage } from './interface';
 
 const chatSchema = new Schema<ChatMessage>({
-  senderId: { type: String, required: true },
-  receiverId: { type: String, required: true },
+  senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  receiverId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   message: { type: String, required: true },
   imageUrls: [
     {

@@ -18,7 +18,8 @@ export interface QueryParams {
     search?: string;
     page?: number;
     limit?: number;
-    type?: 'string'
+    type?: 'string';
+    recieverId?: string;
 }
 export interface Meta {
     total: number;
