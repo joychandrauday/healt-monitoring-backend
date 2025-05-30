@@ -14,9 +14,9 @@ const router = Router();
 
 router.post('/register/:id', authMiddleware, registerDoctor); // Extends existing user by id
 router.post('/login', loginDoctor);
-router.get('/:id', getDoctor);
+router.get('/:id', authMiddleware, getDoctor);
 router.put('/:id', authMiddleware, updateDoctor);
 router.delete('/:id', authMiddleware, roleMiddleware(['admin']), deleteDoctor);
-router.get('/', authMiddleware, getAllDoctors);
+router.get('/', getAllDoctors);
 
 export const doctorRoutes = router;

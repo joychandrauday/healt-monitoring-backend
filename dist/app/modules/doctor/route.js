@@ -8,8 +8,8 @@ const controller_1 = require("./controller");
 const router = (0, express_1.Router)();
 router.post('/register/:id', auth_1.authMiddleware, controller_1.registerDoctor); // Extends existing user by id
 router.post('/login', controller_1.loginDoctor);
-router.get('/:id', controller_1.getDoctor);
+router.get('/:id', auth_1.authMiddleware, controller_1.getDoctor);
 router.put('/:id', auth_1.authMiddleware, controller_1.updateDoctor);
 router.delete('/:id', auth_1.authMiddleware, (0, role_1.roleMiddleware)(['admin']), controller_1.deleteDoctor);
-router.get('/', auth_1.authMiddleware, controller_1.getAllDoctors);
+router.get('/', controller_1.getAllDoctors);
 exports.doctorRoutes = router;
