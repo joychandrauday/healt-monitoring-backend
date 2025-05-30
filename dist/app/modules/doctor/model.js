@@ -20,6 +20,7 @@ const doctorSchema = new mongoose_1.Schema({
     },
     reviews: { type: [reviewSchema], default: [] },
     averageRating: { type: Number, default: 0 },
+    isOnline: { type: Boolean, default: false }
 }, {
     timestamps: true,
 });
