@@ -22,7 +22,7 @@ export class UserService {
         if (!user || !(await bcrypt.compare(password, user.password))) {
             throw new AppError('Invalid credentials', 401);
         }
-        const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET!, {
+        const token = jwt.sign({ id: user._id, email: user.email, role: user.role, avatar: user.avatar }, process.env.JWT_SECRET!, {
             expiresIn: '1d',
         });
         return { user, token };

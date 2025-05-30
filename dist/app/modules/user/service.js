@@ -36,7 +36,7 @@ class UserService {
             if (!user || !(yield bcryptjs_1.default.compare(password, user.password))) {
                 throw new error_1.AppError('Invalid credentials', 401);
             }
-            const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
+            const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email, role: user.role, avatar: user.avatar }, process.env.JWT_SECRET, {
                 expiresIn: '1d',
             });
             return { user, token };
