@@ -7,7 +7,6 @@ import { DoctorService } from './service';
 const doctorService = new DoctorService();
 
 export const registerDoctor = asyncHandler(async (req: Request, res: Response) => {
-    console.log(req.params.id);
     const { doctor, token } = await doctorService.registerDoctor(req.params.id);
     sendResponse(res, {
         statusCode: StatusCodes.CREATED,

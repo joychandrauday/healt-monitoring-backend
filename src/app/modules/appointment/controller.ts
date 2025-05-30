@@ -43,7 +43,6 @@ export const getAppointments = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const updateAppointment = asyncHandler(async (req: Request, res: Response) => {
-    console.log(req.body);
     const appointment = await appointmentService.updateAppointment(req.params.id, req.body);
     sendResponse(res, {
         statusCode: StatusCodes.OK,

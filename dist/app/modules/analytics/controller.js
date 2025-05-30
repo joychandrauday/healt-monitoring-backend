@@ -18,7 +18,6 @@ exports.getVitalTrends = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     res.status(200).json(trends);
 }));
 exports.generateReport = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(req.body);
     const report = yield analyticsService.generateReport(req.body.patientId, req.body.period);
     res.status(200).json(report);
 }));

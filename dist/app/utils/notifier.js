@@ -33,8 +33,6 @@ function sendNotification(email, message) {
             if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
                 throw new Error('Email configuration missing: EMAIL_USER or EMAIL_PASS not set');
             }
-            // Log email attempt
-            console.log(`Configuring transporter for email to ${email}`);
             // Configure Nodemailer transport
             const transporter = nodemailer_1.default.createTransport({
                 service: 'gmail', // Replace with your email service (e.g., SendGrid, AWS SES)
@@ -46,7 +44,6 @@ function sendNotification(email, message) {
             // Verify transporter
             try {
                 yield transporter.verify();
-                console.log(`Transporter verified for ${process.env.EMAIL_USER}`);
             }
             catch (verifyError) {
                 throw new Error(`Transporter verification failed`);
@@ -62,15 +59,8 @@ function sendNotification(email, message) {
             if (!mailOptions.to) {
                 throw new Error('mailOptions.to is undefined');
             }
-            // Log mailOptions
-            console.log('Mail options:', {
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-            });
             // Send email
             const info = yield transporter.sendMail(mailOptions);
-            console.log(`Email sent successfully to ${email}:`, info.messageId);
         }
         catch (error) {
             console.error(`Error in sendNotification for ${email}:`, error.message, error);

@@ -16,7 +16,6 @@ const userService = new UserService();
 const vitalService = new VitalsService();
 
 export const createNotification = asyncHandler(async (req: Request, res: Response) => {
-    console.log(req.body);
     const notification = await notificationService.createNotification(req.body);
     sendResponse(res, {
         statusCode: StatusCodes.CREATED,
@@ -54,7 +53,7 @@ export const getAllNotifications = asyncHandler(async (req: CustomRequest, res: 
 export const acknowledgeNotification = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?.id;
     const notification = await notificationService.acknowledgeNotification(req.params.id, userId as string);
-    console.log(notification);
+    // console.log(notification);
     const user = await userService.getUserById(userId as string);
     if (notification.type !== 'acknowledgment') {
         let message = '';
@@ -94,7 +93,7 @@ export const acknowledgeNotification = asyncHandler(async (req: CustomRequest, r
         const savedNotification = await notificationService.createNotification(newPatientNotification);
 
         // Emit the acknowledgment notification to the patient's room
-        console.log('Emitting to room:', `patient:${newPatientNotification.receiver}`);
+        // console.log('Emitting to room:', `patient:${newPatientNotification.receiver}`);
         io.to(`patient:${newPatientNotification.receiver}`).emit('notification:acknowledged', {
             sender: newPatientNotification.sender,
             notificationId: savedNotification._id,

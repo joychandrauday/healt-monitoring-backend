@@ -10,7 +10,6 @@ const chatService = new ChatService();
 
 export const getChatHistory = asyncHandler(async (req: Request, res: Response) => {
     const { senderId, receiverId } = req.params;
-    console.log('getChatHistory called with:', { senderId, receiverId });
 
     if (!senderId || !receiverId) {
         return sendResponse(res, {
@@ -49,7 +48,6 @@ export const sendMessage = asyncHandler(async (req: CustomRequest, res: Response
 
 export const getUniqueSenders = asyncHandler(async (req: Request, res: Response) => {
     const receiverId = req.params.receiverId;
-    console.log('getUniqueSenders called with:', { receiverId });
     const query = req.query as any;
 
     if (!Types.ObjectId.isValid(receiverId)) {
@@ -62,7 +60,6 @@ export const getUniqueSenders = asyncHandler(async (req: Request, res: Response)
     }
 
     const senders = await chatService.getUniqueSenders(receiverId, query);
-    console.log('getUniqueSenders response:', senders);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,

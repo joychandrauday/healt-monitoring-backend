@@ -10,7 +10,6 @@ export const getVitalTrends = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const generateReport = asyncHandler(async (req: Request, res: Response) => {
-    console.log(req.body);
     const report = await analyticsService.generateReport(req.body.patientId, req.body.period);
     res.status(200).json(report);
 });

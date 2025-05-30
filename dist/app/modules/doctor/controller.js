@@ -19,7 +19,6 @@ const http_status_codes_1 = require("http-status-codes");
 const service_1 = require("./service");
 const doctorService = new service_1.DoctorService();
 exports.registerDoctor = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(req.params.id);
     const { doctor, token } = yield doctorService.registerDoctor(req.params.id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,

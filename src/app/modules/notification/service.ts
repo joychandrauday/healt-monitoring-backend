@@ -76,7 +76,7 @@ export class NotificationService {
         const limitNumber = limit ? Math.max(Number(limit), 1) : 20;
         const skip = (pageNumber - 1) * limitNumber;
 
-        console.log(filters.receiver);
+        // console.log(filters.receiver);
         try {
             const totalNotifications = await Notification.countDocuments(filters);
             const notifications = await Notification.find(filters)

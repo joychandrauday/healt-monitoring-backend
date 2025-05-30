@@ -21,9 +21,6 @@ export async function sendNotification(email: string, message: string): Promise<
             throw new Error('Email configuration missing: EMAIL_USER or EMAIL_PASS not set');
         }
 
-        // Log email attempt
-        console.log(`Configuring transporter for email to ${email}`);
-
         // Configure Nodemailer transport
         const transporter = nodemailer.createTransport({
             service: 'gmail', // Replace with your email service (e.g., SendGrid, AWS SES)
@@ -36,7 +33,6 @@ export async function sendNotification(email: string, message: string): Promise<
         // Verify transporter
         try {
             await transporter.verify();
-            console.log(`Transporter verified for ${process.env.EMAIL_USER}`);
         } catch (verifyError) {
             throw new Error(`Transporter verification failed`);
         }
@@ -54,16 +50,8 @@ export async function sendNotification(email: string, message: string): Promise<
             throw new Error('mailOptions.to is undefined');
         }
 
-        // Log mailOptions
-        console.log('Mail options:', {
-            from: mailOptions.from,
-            to: mailOptions.to,
-            subject: mailOptions.subject,
-        });
-
         // Send email
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email sent successfully to ${email}:`, info.messageId);
     } catch (error: any) {
         console.error(`Error in sendNotification for ${email}:`, error.message, error);
         throw new Error(`Failed to send notification: ${error.message}`);

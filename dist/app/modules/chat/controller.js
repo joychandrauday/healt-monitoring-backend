@@ -21,7 +21,6 @@ const mongoose_1 = require("mongoose");
 const chatService = new service_1.ChatService();
 exports.getChatHistory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { senderId, receiverId } = req.params;
-    console.log('getChatHistory called with:', { senderId, receiverId });
     if (!senderId || !receiverId) {
         return (0, sendResponse_1.default)(res, {
             statusCode: http_status_codes_1.StatusCodes.BAD_REQUEST,
@@ -52,7 +51,6 @@ exports.sendMessage = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
 }));
 exports.getUniqueSenders = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const receiverId = req.params.receiverId;
-    console.log('getUniqueSenders called with:', { receiverId });
     const query = req.query;
     if (!mongoose_1.Types.ObjectId.isValid(receiverId)) {
         return (0, sendResponse_1.default)(res, {
@@ -63,7 +61,6 @@ exports.getUniqueSenders = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
         });
     }
     const senders = yield chatService.getUniqueSenders(receiverId, query);
-    console.log('getUniqueSenders response:', senders);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

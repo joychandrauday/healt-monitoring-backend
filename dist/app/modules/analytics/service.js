@@ -43,7 +43,6 @@ class AnalyticsService {
     }
     generateReport(patientId, period) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log(patientId);
             return this.getVitalTrends(patientId, period);
         });
     }

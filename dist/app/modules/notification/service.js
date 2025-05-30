@@ -81,7 +81,7 @@ class NotificationService {
             const pageNumber = Math.max(Number(page) || 1, 1);
             const limitNumber = limit ? Math.max(Number(limit), 1) : 20;
             const skip = (pageNumber - 1) * limitNumber;
-            console.log(filters.receiver);
+            // console.log(filters.receiver);
             try {
                 const totalNotifications = yield model_1.Notification.countDocuments(filters);
                 const notifications = yield model_1.Notification.find(filters)

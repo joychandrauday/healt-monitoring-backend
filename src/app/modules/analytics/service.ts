@@ -34,7 +34,6 @@ export class AnalyticsService {
         return data;
     }
     async generateReport(patientId: string, period: string): Promise<Analytics> {
-        console.log(patientId);
         return this.getVitalTrends(patientId, period);
     }
 }

@@ -361,7 +361,6 @@ class VitalsService {
             if (!mongoose_1.Types.ObjectId.isValid(vitalId)) {
                 throw new error_1.NotFoundError("Invalid vital ID");
             }
-            console.log(data);
             const updateQuery = { $push: { "feedback.labTests": data } };
             const vital = yield model_1.VitalModel.findByIdAndUpdate(vitalId, updateQuery, { new: true });
             if (!vital) {

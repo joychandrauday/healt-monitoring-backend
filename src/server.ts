@@ -36,7 +36,7 @@ const offlineUsers = new Map<string, { role: string; name: string; avatar?: stri
 (global as any).offlineUsers = offlineUsers;
 
 // Log Socket.IO initialization
-console.log('Socket.IO initialized:', io ? 'OK' : 'undefined');
+// console.log('Socket.IO initialized:', io ? 'OK' : 'undefined');
 
 const chatService = new ChatService();
 
@@ -53,7 +53,7 @@ const initializeOfflineUsers = async () => {
                 });
             }
         });
-        console.log('Initialized offline users:', Array.from(offlineUsers.entries()));
+        // console.log('Initialized offline users:', Array.from(offlineUsers.entries()));
     } catch (error) {
         console.error('Error initializing offline users:', error);
     }
@@ -97,19 +97,19 @@ io.on('connection', (socket: Socket) => {
     // Update user status
     onlineUsers.set(userId, { role, name, avatar });
     offlineUsers.delete(userId); // Remove from offline users
-    console.log(`🟢 New client connected: ${socket.id}, User: ${userId}, Role: ${role}, Name: ${name}, Avatar: ${avatar}, Online users:`, Array.from(onlineUsers.entries()));
-    console.log(`Offline users:`, Array.from(offlineUsers.entries()));
+    // console.log(`🟢 New client connected: ${socket.id}, User: ${userId}, Role: ${role}, Name: ${name}, Avatar: ${avatar}, Online users:`, Array.from(onlineUsers.entries()));
+    // console.log(`Offline users:`, Array.from(offlineUsers.entries()));
 
     // Auto-join user to their role-based room
     if (role === 'doctor') {
         socket.join(`doctor:${userId}`);
-        console.log(`Doctor auto-joined room: doctor:${userId}`);
+        // console.log(`Doctor auto-joined room: doctor:${userId}`);
     } else if (role === 'patient') {
         socket.join(`patient:${userId}`);
-        console.log(`Patient auto-joined room: patient:${userId}`);
+        // console.log(`Patient auto-joined room: patient:${userId}`);
     } else if (role === 'admin') {
         socket.join(`admin:${userId}`);
-        console.log(`Admin auto-joined room: admin:${userId}`);
+        // console.log(`Admin auto-joined room: admin:${userId}`);
     }
 
     // Broadcast updated user status
@@ -121,7 +121,7 @@ io.on('connection', (socket: Socket) => {
     socket.on('joinDoctorRoom', ({ doctorId }: { doctorId: string }) => {
         if (socket.data.user.id === doctorId && socket.data.user.role === 'doctor') {
             socket.join(`doctor:${doctorId}`);
-            console.log(`Doctor joined room: doctor:${doctorId}`);
+            // console.log(`Doctor joined room: doctor:${doctorId}`);
             io.emit('userStatus', {
                 onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
                 offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -134,7 +134,7 @@ io.on('connection', (socket: Socket) => {
     socket.on('joinPatientRoom', ({ patientId }: { patientId: string }) => {
         if (socket.data.user.id === patientId && socket.data.user.role === 'patient') {
             socket.join(`patient:${patientId}`);
-            console.log(`Patient joined room: patient:${patientId}`);
+            // console.log(`Patient joined room: patient:${patientId}`);
             io.emit('userStatus', {
                 onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
                 offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -145,7 +145,7 @@ io.on('connection', (socket: Socket) => {
     socket.on('joinAdminRoom', ({ adminId }: { adminId: string }) => {
         if (socket.data.user.id === adminId && socket.data.user.role === 'admin') {
             socket.join(`admin:${adminId}`);
-            console.log(`Admin joined room: admin:${adminId}`);
+            // console.log(`Admin joined room: admin:${adminId}`);
             io.emit('userStatus', {
                 onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
                 offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -155,7 +155,7 @@ io.on('connection', (socket: Socket) => {
 
     socket.on('message', async ({ receiverId, message }: { receiverId: ObjectId; message: any }) => {
         try {
-            console.log('Received socket message:', { senderId: socket.data.user.id, receiverId, message });
+            // console.log('Received socket message:', { senderId: socket.data.user.id, receiverId, message });
 
             let savedMessage: any;
 
@@ -176,7 +176,7 @@ io.on('connection', (socket: Socket) => {
                     timestamp: message.timestamp || new Date().toISOString(),
                     imageUrls: message.imageUrls || [],
                 });
-                console.log('Saved message:', savedMessage);
+                // console.log('Saved message:', savedMessage);
 
                 if (!savedMessage._id) {
                     console.error('Saved message missing _id:', savedMessage);
@@ -198,12 +198,12 @@ io.on('connection', (socket: Socket) => {
                 imageUrls: savedMessage.imageUrls || [],
             };
 
-            console.log('Broadcasting message to rooms:', {
-                patientSender: `patient:${socket.data.user.id}`,
-                doctorReceiver: `doctor:${receiverId}`,
-                patientReceiver: `patient:${receiverId}`,
-                formattedMessage,
-            });
+            // console.log('Broadcasting message to rooms:', {
+            //     patientSender: `patient:${socket.data.user.id}`,
+            //     doctorReceiver: `doctor:${receiverId}`,
+            //     patientReceiver: `patient:${receiverId}`,
+            //     formattedMessage,
+            // });
 
             io.to(`patient:${socket.data.user.id}`)
                 .to(`doctor:${receiverId}`)
@@ -217,8 +217,8 @@ io.on('connection', (socket: Socket) => {
     socket.on('logout', () => {
         onlineUsers.delete(userId);
         offlineUsers.set(userId, { role, name, avatar });
-        console.log(`User logged out: ${userId}, Role: ${role}, Online users:`, Array.from(onlineUsers.entries()));
-        console.log(`Offline users:`, Array.from(offlineUsers.entries()));
+        // console.log(`User logged out: ${userId}, Role: ${role}, Online users:`, Array.from(onlineUsers.entries()));
+        // console.log(`Offline users:`, Array.from(offlineUsers.entries()));
         io.emit('userStatus', {
             onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
             offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -227,11 +227,11 @@ io.on('connection', (socket: Socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`🔴 Client disconnected: ${socket.id}, User: ${userId}`);
+        // console.log(`🔴 Client disconnected: ${socket.id}, User: ${userId}`);
         onlineUsers.delete(userId);
         offlineUsers.set(userId, { role, name, avatar });
-        console.log(`User disconnected: ${userId}, Role: ${role}, Online users:`, Array.from(onlineUsers.entries()));
-        console.log(`Offline users:`, Array.from(offlineUsers.entries()));
+        // console.log(`User disconnected: ${userId}, Role: ${role}, Online users:`, Array.from(onlineUsers.entries()));
+        // console.log(`Offline users:`, Array.from(offlineUsers.entries()));
         io.emit('userStatus', {
             onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
             offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -245,11 +245,11 @@ const startServer = async () => {
         await initializeOfflineUsers(); // Initialize offline users after DB connection
         if (!server.listening) {
             server.listen(PORT, () => {
-                console.log(`🚀 Health Monitoring Server running on port ${PORT}`);
-                console.log(`Socket.io server running on http://localhost:${PORT}`);
+                // console.log(`🚀 Health Monitoring Server running on port ${PORT}`);
+                // console.log(`Socket.io server running on http://localhost:${PORT}`);
             });
         } else {
-            console.log(`Server is already listening on port ${PORT}`);
+            // console.log(`Server is already listening on port ${PORT}`);
         }
     } catch (error) {
         console.error('Failed to start server:', error);

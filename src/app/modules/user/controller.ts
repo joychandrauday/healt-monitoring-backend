@@ -6,7 +6,6 @@ import { StatusCodes } from "http-status-codes";
 const userService = new UserService();
 
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
-    console.log(req.body);
     const { user, token } = await userService.registerUser(req.body);
 
     sendResponse(res, {

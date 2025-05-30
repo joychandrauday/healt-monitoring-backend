@@ -26,7 +26,6 @@ const notificationService = new service_1.NotificationService();
 const userService = new service_2.UserService();
 const vitalService = new service_3.VitalsService();
 exports.createNotification = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(req.body);
     const notification = yield notificationService.createNotification(req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
@@ -61,7 +60,7 @@ exports.acknowledgeNotification = (0, asyncHandler_1.asyncHandler)((req, res) =>
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     const notification = yield notificationService.acknowledgeNotification(req.params.id, userId);
-    console.log(notification);
+    // console.log(notification);
     const user = yield userService.getUserById(userId);
     if (notification.type !== 'acknowledgment') {
         let message = '';
@@ -99,7 +98,7 @@ exports.acknowledgeNotification = (0, asyncHandler_1.asyncHandler)((req, res) =>
         };
         const savedNotification = yield notificationService.createNotification(newPatientNotification);
         // Emit the acknowledgment notification to the patient's room
-        console.log('Emitting to room:', `patient:${newPatientNotification.receiver}`);
+        // console.log('Emitting to room:', `patient:${newPatientNotification.receiver}`);
         server_1.io.to(`patient:${newPatientNotification.receiver}`).emit('notification:acknowledged', {
             sender: newPatientNotification.sender,
             notificationId: savedNotification._id,

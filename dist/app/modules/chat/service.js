@@ -59,7 +59,6 @@ class ChatService {
     getUniqueSenders(receiverId, query) {
         return __awaiter(this, void 0, void 0, function* () {
             const { page = 1, limit = 10 } = query;
-            console.log(receiverId);
             const pageNumber = Number(page) > 0 ? Number(page) : 1;
             const limitNumber = Number(limit) > 0 ? Number(limit) : 10;
             const skip = (pageNumber - 1) * limitNumber;

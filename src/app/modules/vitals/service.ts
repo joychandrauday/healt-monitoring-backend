@@ -376,7 +376,6 @@ export class VitalsService {
         if (!Types.ObjectId.isValid(vitalId)) {
             throw new NotFoundError("Invalid vital ID");
         }
-        console.log(data);
         const updateQuery = { $push: { "feedback.labTests": data } };
         const vital = await VitalModel.findByIdAndUpdate(vitalId, updateQuery, { new: true });
 
