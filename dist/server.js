@@ -119,7 +119,6 @@ exports.io.on('connection', (socket) => {
         socket.join(`admin:${userId}`);
         // console.log(`Admin auto-joined room: admin:${userId}`);
     }
-    // Broadcast updated user status
     exports.io.emit('userStatus', {
         onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
         offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -159,7 +158,6 @@ exports.io.on('connection', (socket) => {
     });
     socket.on('message', (_a) => __awaiter(void 0, [_a], void 0, function* ({ receiverId, message }) {
         try {
-            // console.log('Received socket message:', { senderId: socket.data.user.id, receiverId, message });
             let savedMessage;
             if (message._id) {
                 savedMessage = {
@@ -198,12 +196,6 @@ exports.io.on('connection', (socket) => {
                 timestamp: new Date(savedMessage.timestamp).toISOString(),
                 imageUrls: savedMessage.imageUrls || [],
             };
-            // console.log('Broadcasting message to rooms:', {
-            //     patientSender: `patient:${socket.data.user.id}`,
-            //     doctorReceiver: `doctor:${receiverId}`,
-            //     patientReceiver: `patient:${receiverId}`,
-            //     formattedMessage,
-            // });
             exports.io.to(`patient:${socket.data.user.id}`)
                 .to(`doctor:${receiverId}`)
                 .to(`patient:${receiverId}`)
@@ -213,11 +205,81 @@ exports.io.on('connection', (socket) => {
             console.error('Error processing message:', error);
         }
     }));
+    // Handle video call initiation
+    // Handle video call initiation
+    // Handle socket connections
+    exports.io.on('connection', (socket) => {
+        const userId = socket.data.user.id;
+        const role = socket.data.user.role;
+        const name = socket.data.user.name;
+        const avatar = socket.data.user.avatar;
+        // Update user status
+        onlineUsers.set(userId, { role, name, avatar });
+        offlineUsers.delete(userId);
+        console.log(`🟢 New client connected: ${socket.id}, User: ${userId}, Role: ${role}, Name: ${name}`);
+        // Auto-join user to their role-based room
+        if (role === 'doctor') {
+            socket.join(`doctor:${userId}`);
+        }
+        else if (role === 'patient') {
+            socket.join(`patient:${userId}`);
+        }
+        else if (role === 'admin') {
+            socket.join(`admin:${userId}`);
+        }
+        exports.io.emit('userStatus', {
+            onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
+            offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
+        });
+        // Handle video call initiation
+        socket.on('startVideoCall', ({ appointmentId, callerId, recipientId, callerName }) => {
+            console.log(`startVideoCall received: ${callerId}, ${recipientId}, ${callerName}, appointmentId: ${appointmentId}`);
+            const recipientUser = onlineUsers.get(recipientId);
+            const callerUser = onlineUsers.get(callerId);
+            if (recipientUser) {
+                const recipientRoom = recipientUser.role === 'patient' ? `patient:${recipientId}` : `doctor:${recipientId}`;
+                exports.io.to(recipientRoom).emit('receiveVideoCall', {
+                    appointmentId,
+                    callerId,
+                    recipientId,
+                    callerName,
+                });
+                console.log(`Emitted receiveVideoCall to ${recipientRoom}`);
+            }
+            else {
+                socket.emit('callError', { message: 'Recipient is offline' });
+                console.log(`Recipient ${recipientId} is offline`);
+            }
+            // Notify caller that the call is ringing
+            if (callerUser) {
+                const callerRoom = callerUser.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
+                exports.io.to(callerRoom).emit('callRinging', {
+                    appointmentId,
+                    callerId,
+                    recipientId,
+                    callerName,
+                });
+                console.log(`Emitted callRinging to ${callerRoom}`);
+            }
+        });
+        // Handle video call decline
+        socket.on('declineVideoCall', ({ appointmentId, callerId, recipientId }) => {
+            console.log(`declineVideoCall received: appointmentId: ${appointmentId}, callerId: ${callerId}, recipientId: ${recipientId}`);
+            const callerUser = onlineUsers.get(callerId);
+            if (callerUser) {
+                const callerRoom = callerUser.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
+                exports.io.to(callerRoom).emit('callDeclined', {
+                    appointmentId,
+                    recipientId,
+                });
+                console.log(`Emitted callDeclined to ${callerRoom}`);
+            }
+        });
+        // Existing message and disconnect handlers...
+    });
     socket.on('logout', () => {
         onlineUsers.delete(userId);
         offlineUsers.set(userId, { role, name, avatar });
-        // console.log(`User logged out: ${userId}, Role: ${role}, Online users:`, Array.from(onlineUsers.entries()));
-        // console.log(`Offline users:`, Array.from(offlineUsers.entries()));
         exports.io.emit('userStatus', {
             onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
             offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -225,11 +287,8 @@ exports.io.on('connection', (socket) => {
         socket.disconnect();
     });
     socket.on('disconnect', () => {
-        // console.log(`🔴 Client disconnected: ${socket.id}, User: ${userId}`);
         onlineUsers.delete(userId);
         offlineUsers.set(userId, { role, name, avatar });
-        // console.log(`User disconnected: ${userId}, Role: ${role}, Online users:`, Array.from(onlineUsers.entries()));
-        // console.log(`Offline users:`, Array.from(offlineUsers.entries()));
         exports.io.emit('userStatus', {
             onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
             offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
@@ -242,12 +301,12 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         yield initializeOfflineUsers(); // Initialize offline users after DB connection
         if (!server.listening) {
             server.listen(PORT, () => {
-                // console.log(`🚀 Health Monitoring Server running on port ${PORT}`);
-                // console.log(`Socket.io server running on http://localhost:${PORT}`);
+                console.log(`🚀 Health Monitoring Server running on port ${PORT}`);
+                console.log(`Socket.io server running on http://localhost:${PORT}`);
             });
         }
         else {
-            // console.log(`Server is already listening on port ${PORT}`);
+            console.log(`Server is already listening on port ${PORT}`);
         }
     }
     catch (error) {

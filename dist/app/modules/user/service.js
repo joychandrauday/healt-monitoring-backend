@@ -24,7 +24,7 @@ class UserService {
             if (existingUser)
                 throw new error_1.AppError('Email already exists', 400);
             const user = yield model_1.UserModel.create(data);
-            const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
+            const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email, role: user.role, avatar: user.avatar }, process.env.JWT_SECRET, {
                 expiresIn: '1d',
             });
             return { user, token };
