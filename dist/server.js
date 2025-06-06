@@ -206,76 +206,72 @@ exports.io.on('connection', (socket) => {
         }
     }));
     // Handle video call initiation
-    // Handle video call initiation
-    // Handle socket connections
-    exports.io.on('connection', (socket) => {
-        const userId = socket.data.user.id;
-        const role = socket.data.user.role;
-        const name = socket.data.user.name;
-        const avatar = socket.data.user.avatar;
-        // Update user status
-        onlineUsers.set(userId, { role, name, avatar });
-        offlineUsers.delete(userId);
-        console.log(`🟢 New client connected: ${socket.id}, User: ${userId}, Role: ${role}, Name: ${name}`);
-        // Auto-join user to their role-based room
-        if (role === 'doctor') {
-            socket.join(`doctor:${userId}`);
+    socket.on('startVideoCall', ({ appointmentId, callerId, recipientId, callerName }) => {
+        console.log(`startVideoCall received: ${callerId}, ${recipientId}, ${callerName}, appointmentId: ${appointmentId}`);
+        const recipientUser = onlineUsers.get(recipientId);
+        const callerUser = onlineUsers.get(callerId);
+        if (recipientUser) {
+            const recipientRoom = recipientUser.role === 'patient' ? `patient:${recipientId}` : `doctor:${recipientId}`;
+            exports.io.to(recipientRoom).emit('receiveVideoCall', {
+                appointmentId,
+                callerId,
+                recipientId,
+                callerName,
+            });
+            console.log(`Emitted receiveVideoCall to ${recipientRoom}`);
         }
-        else if (role === 'patient') {
-            socket.join(`patient:${userId}`);
+        else {
+            socket.emit('callError', { message: 'Recipient is offline' });
+            console.log(`Recipient ${recipientId} is offline`);
         }
-        else if (role === 'admin') {
-            socket.join(`admin:${userId}`);
+        if (callerUser) {
+            const callerRoom = callerUser.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
+            exports.io.to(callerRoom).emit('callRinging', {
+                appointmentId,
+                callerId,
+                recipientId,
+                callerName,
+            });
+            console.log(`Emitted callRinging to ${callerRoom}`);
         }
-        exports.io.emit('userStatus', {
-            onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
-            offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
-        });
-        // Handle video call initiation
-        socket.on('startVideoCall', ({ appointmentId, callerId, recipientId, callerName }) => {
-            console.log(`startVideoCall received: ${callerId}, ${recipientId}, ${callerName}, appointmentId: ${appointmentId}`);
-            const recipientUser = onlineUsers.get(recipientId);
-            const callerUser = onlineUsers.get(callerId);
-            if (recipientUser) {
-                const recipientRoom = recipientUser.role === 'patient' ? `patient:${recipientId}` : `doctor:${recipientId}`;
-                exports.io.to(recipientRoom).emit('receiveVideoCall', {
-                    appointmentId,
-                    callerId,
-                    recipientId,
-                    callerName,
-                });
-                console.log(`Emitted receiveVideoCall to ${recipientRoom}`);
-            }
-            else {
-                socket.emit('callError', { message: 'Recipient is offline' });
-                console.log(`Recipient ${recipientId} is offline`);
-            }
-            // Notify caller that the call is ringing
-            if (callerUser) {
-                const callerRoom = callerUser.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
-                exports.io.to(callerRoom).emit('callRinging', {
-                    appointmentId,
-                    callerId,
-                    recipientId,
-                    callerName,
-                });
-                console.log(`Emitted callRinging to ${callerRoom}`);
-            }
-        });
-        // Handle video call decline
-        socket.on('declineVideoCall', ({ appointmentId, callerId, recipientId }) => {
-            console.log(`declineVideoCall received: appointmentId: ${appointmentId}, callerId: ${callerId}, recipientId: ${recipientId}`);
-            const callerUser = onlineUsers.get(callerId);
-            if (callerUser) {
-                const callerRoom = callerUser.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
-                exports.io.to(callerRoom).emit('callDeclined', {
-                    appointmentId,
-                    recipientId,
-                });
-                console.log(`Emitted callDeclined to ${callerRoom}`);
-            }
-        });
-        // Existing message and disconnect handlers...
+    });
+    socket.on('signal', ({ appointmentId, callerId, receiverId, signalData }) => {
+        console.log(`Received signal from ${callerId} to ${receiverId} for appointment ${appointmentId}`);
+        const recipientUser = onlineUsers.get(receiverId);
+        if (recipientUser) {
+            const recipientRoom = recipientUser.role === 'patient' ? `patient:${receiverId}` : `doctor:${receiverId}`;
+            exports.io.to(recipientRoom).emit('signal', {
+                appointmentId,
+                callerId,
+                receiverId,
+                signalData,
+            });
+            console.log(`Forwarded signal to ${recipientRoom}`);
+        }
+        else {
+            console.log(`Recipient ${receiverId} is offline or not found`);
+        }
+    });
+    socket.on('declineVideoCall', ({ appointmentId, callerId, recipientId }) => {
+        console.log(`declineVideoCall received: appointmentId: ${appointmentId}, callerId: ${callerId}, recipientId: ${recipientId}`);
+        const callerUser = onlineUsers.get(callerId);
+        if (callerUser) {
+            const callerRoom = callerUser.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
+            exports.io.to(callerRoom).emit('callDeclined', {
+                appointmentId,
+                recipientId,
+            });
+            console.log(`Emitted callDeclined to ${callerRoom}`);
+        }
+    });
+    socket.on('hangUp', ({ appointmentId, callerId, recipientId }) => {
+        console.log(`hangUp received: appointmentId: ${appointmentId}, callerId: ${callerId}, recipientId: ${recipientId}`);
+        const recipientUser = onlineUsers.get(recipientId);
+        if (recipientUser) {
+            const recipientRoom = recipientUser.role === 'patient' ? `patient:${recipientId}` : `doctor:${recipientId}`;
+            exports.io.to(recipientRoom).emit('hangUp', { appointmentId });
+            console.log(`Emitted hangUp to ${recipientRoom}`);
+        }
     });
     socket.on('logout', () => {
         onlineUsers.delete(userId);
