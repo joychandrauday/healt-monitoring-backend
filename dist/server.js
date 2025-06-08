@@ -62,27 +62,28 @@ const initializeOfflineUsers = () => __awaiter(void 0, void 0, void 0, function*
 });
 exports.io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
     const token = socket.handshake.auth.token;
-    if (token) {
-        try {
-            const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-            const user = yield model_1.UserModel.findById(decoded.id).select('name role avatar').lean();
-            if (!user)
-                return next(new Error('User not found'));
-            socket.data.user = {
-                id: decoded.id,
-                role: user.role || decoded.role,
-                name: user.name || 'Unknown',
-                avatar: user.avatar || undefined,
-            };
-            next();
-        }
-        catch (error) {
-            console.error('Socket authentication error:', error);
-            next(new Error('Authentication error'));
-        }
+    if (!token) {
+        console.error('No token provided');
+        return next(new Error('Authentication error: No token'));
     }
-    else {
-        next(new Error('Authentication error'));
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const user = yield model_1.UserModel.findById(decoded.id).select('name role avatar').lean();
+        if (!user) {
+            console.error('User not found for ID:', decoded.id);
+            return next(new Error('Authentication error: User not found'));
+        }
+        socket.data.user = {
+            id: decoded.id,
+            role: user.role || decoded.role,
+            name: user.name || 'Unknown',
+            avatar: user.avatar || undefined,
+        };
+        next();
+    }
+    catch (error) {
+        console.error('Socket authentication error:', error);
+        next(new Error('Authentication error: Invalid token'));
     }
 }));
 exports.io.on('connection', (socket) => {
@@ -97,21 +98,34 @@ exports.io.on('connection', (socket) => {
         offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
     });
     socket.on('joinDoctorRoom', ({ doctorId }) => {
+        if (!doctorId)
+            return;
         if (userId === doctorId && role === 'doctor') {
             socket.join(`doctor:${doctorId}`);
+            console.log(`Doctor joined room: doctor:${doctorId}`);
         }
     });
     socket.on('joinPatientRoom', ({ patientId }) => {
+        if (!patientId)
+            return;
         if (userId === patientId && role === 'patient') {
             socket.join(`patient:${patientId}`);
+            console.log(`Patient joined room: patient:${patientId}`);
         }
     });
     socket.on('joinAdminRoom', ({ adminId }) => {
+        if (!adminId)
+            return;
         if (userId === adminId && role === 'admin') {
             socket.join(`admin:${adminId}`);
+            console.log(`Admin joined room: admin:${adminId}`);
         }
     });
     socket.on('message', (_a) => __awaiter(void 0, [_a], void 0, function* ({ receiverId, message }) {
+        if (!receiverId || !message) {
+            console.error('Invalid message data:', { receiverId, message });
+            return;
+        }
         try {
             let savedMessage;
             if (message._id) {
@@ -151,6 +165,11 @@ exports.io.on('connection', (socket) => {
         }
     }));
     socket.on('startVideoCall', ({ appointmentId, callerId, recipientId, callerName }) => {
+        if (!appointmentId || !callerId || !recipientId || !callerName) {
+            console.error('Invalid startVideoCall data:', { appointmentId, callerId, recipientId, callerName });
+            socket.emit('callError', { message: 'Invalid call data', appointmentId });
+            return;
+        }
         const recipient = onlineUsers.get(recipientId);
         const caller = onlineUsers.get(callerId);
         if (recipient) {
@@ -161,9 +180,11 @@ exports.io.on('connection', (socket) => {
                 recipientId,
                 callerName,
             });
+            console.log(`Emitted startVideoCall to ${room}`);
         }
         else {
             socket.emit('callError', { message: 'Recipient is offline', appointmentId });
+            console.log(`startVideoCall failed: Recipient ${recipientId} is offline`);
         }
         if (caller) {
             const room = caller.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
@@ -173,41 +194,73 @@ exports.io.on('connection', (socket) => {
                 recipientId,
                 callerName,
             });
+            console.log(`Emitted callRinging to ${room}`);
         }
     });
     socket.on('signal', ({ appointmentId, callerId, receiverId, signalData }) => {
+        if (!appointmentId || !callerId || !receiverId || !signalData) {
+            console.error('Invalid signal data:', { appointmentId, callerId, receiverId });
+            return;
+        }
         const recipient = onlineUsers.get(receiverId);
         if (recipient) {
             const room = recipient.role === 'patient' ? `patient:${receiverId}` : `doctor:${receiverId}`;
             exports.io.to(room).emit('signal', { appointmentId, callerId, receiverId, signalData });
+            console.log(`Emitted signal to ${room}`);
         }
     });
     socket.on('callAccepted', ({ appointmentId, callerId, recipientId }) => {
+        if (!appointmentId || !callerId || !recipientId) {
+            console.error('Invalid callAccepted data:', { appointmentId, callerId, recipientId });
+            return;
+        }
         const caller = onlineUsers.get(callerId);
         if (caller) {
             const room = caller.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
             exports.io.to(room).emit('callAccepted', { appointmentId, callerId, recipientId });
+            console.log(`Emitted callAccepted to ${room}`);
         }
         exports.io.to(`patient:${recipientId}`).to(`doctor:${callerId}`).emit('clearCallState', { userId: recipientId });
         exports.io.to(`patient:${recipientId}`).to(`doctor:${callerId}`).emit('clearCallState', { userId: callerId });
+        console.log(`Emitted clearCallState for ${recipientId} and ${callerId}`);
     });
     socket.on('declineVideoCall', ({ appointmentId, callerId, recipientId }) => {
+        if (!appointmentId || !callerId || !recipientId) {
+            console.error('Invalid declineVideoCall data:', { appointmentId, callerId, recipientId });
+            return;
+        }
         const caller = onlineUsers.get(callerId);
         if (caller) {
             const room = caller.role === 'patient' ? `patient:${callerId}` : `doctor:${callerId}`;
             exports.io.to(room).emit('callDeclined', { appointmentId, recipientId });
+            console.log(`Emitted callDeclined to ${room}`);
         }
         exports.io.to(`patient:${recipientId}`).to(`doctor:${callerId}`).emit('clearCallState', { userId: recipientId });
         exports.io.to(`patient:${recipientId}`).to(`doctor:${callerId}`).emit('clearCallState', { userId: callerId });
+        console.log(`Emitted clearCallState for ${recipientId} and ${callerId}`);
     });
     socket.on('hangUp', ({ appointmentId, callerId, recipientId }) => {
+        if (!appointmentId || !callerId || !recipientId) {
+            console.error('Invalid hangUp data:', { appointmentId, callerId, recipientId });
+            return;
+        }
         const recipient = onlineUsers.get(recipientId);
         if (recipient) {
             const room = recipient.role === 'patient' ? `patient:${recipientId}` : `doctor:${recipientId}`;
             exports.io.to(room).emit('hangUp', { appointmentId });
+            console.log(`Emitted hangUp to ${room}`);
         }
         exports.io.to(`patient:${recipientId}`).to(`doctor:${callerId}`).emit('clearCallState', { userId: recipientId });
         exports.io.to(`patient:${recipientId}`).to(`doctor:${callerId}`).emit('clearCallState', { userId: callerId });
+        console.log(`Emitted clearCallState for ${recipientId} and ${callerId}`);
+    });
+    socket.on('clearCallState', ({ userId }) => {
+        if (!userId) {
+            console.error('Invalid clearCallState data:', { userId });
+            return;
+        }
+        exports.io.to(`patient:${userId}`).to(`doctor:${userId}`).emit('clearCallState', { userId });
+        console.log(`Emitted clearCallState for ${userId}`);
     });
     socket.on('disconnect', () => {
         onlineUsers.delete(userId);
@@ -217,6 +270,7 @@ exports.io.on('connection', (socket) => {
             onlineUsers: Array.from(onlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
             offlineUsers: Array.from(offlineUsers.entries()).map(([id, { role, name, avatar }]) => ({ id, role, name, avatar })),
         });
+        socket.leave(`${role}:${userId}`);
     });
 });
 (0, config_1.connectDB)().then(() => {
