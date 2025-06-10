@@ -47,6 +47,7 @@ const initializeOfflineUsers = async () => {
             }
         });
         console.log('Initialized offline users:', Array.from(offlineUsers.entries()));
+        console.log('Initialized online  users:', Array.from(onlineUsers.entries()));
     } catch (error) {
         console.error('Error initializing offline users:', error);
     }
